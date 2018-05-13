@@ -7,6 +7,8 @@ import io
 import time
 import json
 
+from urllib import parse
+import http.client
 import socket
 import smtplib
 
@@ -189,3 +191,27 @@ class Stdout(object):
 
     def _activate_comment(self, id):
         logger.info("comment %s activated" % id)
+
+
+class Wechat(object):
+
+    def __init__(self, isso):
+        self.conf = isso.conf.section("Wechat")
+        self.web_hook_key = self.conf.get('web-hook-key')
+
+    def __iter__(self):
+        yield "comments.new:after-save", self.notify
+
+    def notify(self, thread, comment):
+        q = parse.quote
+        uri = local("host") + "/id/" + str(comment["id"])
+        key = self.isso.sign(comment["id"])
+        act_url = uri + '/activate/' + key
+        del_url = uri + '/delete/' + key
+        view_url = local('origin') + thread['uri'] + '#isso-' + str(comment['id'])
+        author = comment["author"] or "匿名"
+        request_uri = '/webhook/' + self.web_hook_key + '?TA_action_on=1&TA_title=' + q(author) + "&TA_content=" + q(comment["text"]) + "&TA_url_a=" + q(act_url) + "&TA_url_r=" + q(del_url) + "&TA_url_c=" + q(view_url)
+        conn = http.client.HTTPConnection("sc.ftqq.com")
+        conn.request("GET", request_uri)
+        r1 = conn.getresponse()
+        #logger.info("ftqq:" + str(r1.status) + " " + str(r1.reason))
