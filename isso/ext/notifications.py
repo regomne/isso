@@ -196,7 +196,8 @@ class Stdout(object):
 class Wechat(object):
 
     def __init__(self, isso):
-        self.conf = isso.conf.section("Wechat")
+        self.isso = isso
+        self.conf = isso.conf.section("wechat")
         self.web_hook_key = self.conf.get('web-hook-key')
 
     def __iter__(self):
